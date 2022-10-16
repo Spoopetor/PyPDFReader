@@ -20,6 +20,7 @@ class Reader:
     series = {}
     selected = ""
     indexToBook = {}
+    theme = ""
 
     def readSettings(self):
         try:
@@ -27,12 +28,15 @@ class Reader:
                 self.settings = f.readlines()
                 if len(self.settings[0].split(">")) == 2:
                     self.dataFolder = self.settings[0].split(">")[1][:-1]
+                if len(self.settings[1].split(">")) == 2:
+                    self.theme = self.settings[0].split(">")[1][:-1]
+                    print(self.theme)
         except:
             f = open('settings', 'x')
             f.close()
             with open('settings', 'w') as f:
                 f.write("datapath>\n")
-                f.write("theme>\n")
+                f.write("theme>#718085\n")
 
     def updateSettings(self):
         with open('settings', 'w') as f:
@@ -44,11 +48,46 @@ class Reader:
         self.series = {}
         try:
             self.folders = os.listdir(self.dataFolder)
-            for i in self.folders:
-                self.series[i] = os.listdir(self.dataFolder + "/" + i)
+
         except:
             print("No Data Folder Found")
+            return
+        for i in self.folders:
+            self.series[i] = os.listdir(self.dataFolder + "/" + i)
+            for j in self.series[i]:
+                Reader.convertBook(r, self.dataFolder + "/" + i, j)
         Reader.displaySeries(r)
+
+    def convertBook(self, path, book):
+
+        src = path + "/src"
+        if not os.path.exists(src):
+            os.mkdir(path + "/src")
+        try:
+            os.mkdir(src+"/"+book[:-4])
+        except:
+            pass
+        volPath = src+"/"+book[:-4]
+
+        pdffile = path+"/"+book
+
+        try:
+            with fitz.open(pdffile) as doc:
+                zoom = 2
+                mat = fitz.Matrix(zoom, zoom)
+
+                count = len(doc)
+
+                if len(os.listdir(volPath)) != count:
+                    for i in range(count):
+                        val = f"{volPath}/image_{i + 1}.png"
+                        page = doc.load_page(i)
+                        pix = page.get_pixmap(matrix=mat)
+                        pix.save(val)
+        except:
+            pass
+
+
 
     def getDir(self):
         self.dataFolder = filedialog.askdirectory(initialdir=self.dataFolder)
@@ -74,18 +113,8 @@ class Reader:
         backB.pack()
         print(book)
 
-        mat = fitz.Matrix(1.5, 1.5)
-        doc = fitz.open(book)
-        image_list = []
-
-        for page in doc:
-            pix = page.get_pixmap(matrix=mat)
-            img = Image.frombytes("RGB",[pix.width, pix.height], pix.samples)
-            image_list.append(img)
-
-        test = ImageTk.PhotoImage(image_list[0])
-        pageL = tk.Label(image=test)
-        pageL.pack()
+        #pageL = tk.Label(image=test)
+        #pageL.pack()
 
     def turnPage(self, i):
         pass
@@ -111,7 +140,7 @@ class Reader:
             sB = tk.Label(self.frame, text=" " + series + " ", font=("Segoe UI", 15), bg="#718085", fg="#EEEEEE")
             sB.grid(row=0, column=i)
             for book in self.series[series]:
-                if book.split(".")[1] == "pdf":
+                if book.endswith(".pdf"):
                     self.indexToBook[(i, j)] = (book, series)
                     bB = tk.Button(self.frame, text=j, height=1, width=5, command=partial(Reader.selectBook, r, i, j))
                     bB.grid(row=j, column=i)
