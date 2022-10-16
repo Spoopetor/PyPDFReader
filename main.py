@@ -27,20 +27,19 @@ class Reader:
             with open('settings') as f:
                 self.settings = f.readlines()
                 if len(self.settings[0].split(">")) == 2:
-                    self.dataFolder = self.settings[0].split(">")[1][:-1]
-                if len(self.settings[1].split(">")) == 2:
-                    self.theme = self.settings[0].split(">")[1][:-1]
-                    print(self.theme)
+                    self.dataFolder = self.settings[0].split(">")[1]
         except:
-            f = open('settings', 'x')
-            f.close()
+            try:
+                f = open('settings', 'x')
+                f.close()
+            except:
+                pass
             with open('settings', 'w') as f:
                 f.write("datapath>\n")
-                f.write("theme>#718085\n")
 
     def updateSettings(self):
+        map(lambda x: x + "\n", self.settings)
         with open('settings', 'w') as f:
-            map(lambda x: x + "\n", self.settings)
             f.writelines(self.settings)
 
     def getFolders(self):
@@ -50,7 +49,7 @@ class Reader:
             self.folders = os.listdir(self.dataFolder)
 
         except:
-            print("No Data Folder Found")
+            print("No Library Folder Found")
             return
         for i in self.folders:
             self.series[i] = os.listdir(self.dataFolder + "/" + i)
@@ -71,6 +70,7 @@ class Reader:
 
         pdffile = path+"/"+book
 
+
         try:
             with fitz.open(pdffile) as doc:
                 zoom = 2
@@ -79,6 +79,7 @@ class Reader:
                 count = len(doc)
 
                 if len(os.listdir(volPath)) != count:
+                    print(f"\t <Converting Book: {book}>")
                     for i in range(count):
                         val = f"{volPath}/image_{i + 1}.png"
                         page = doc.load_page(i)
@@ -92,6 +93,8 @@ class Reader:
     def getDir(self):
         self.dataFolder = filedialog.askdirectory(initialdir=self.dataFolder)
         print("Updated Data Folder: " + self.dataFolder)
+        if len(self.settings) == 0:
+            self.settings = [""]
         self.settings[0] = "datapath>" + self.dataFolder
         Reader.updateSettings(r)
         Reader.getFolders(r)
